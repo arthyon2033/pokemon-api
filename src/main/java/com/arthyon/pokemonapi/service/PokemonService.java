@@ -3,7 +3,6 @@ package com.arthyon.pokemonapi.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -25,9 +24,6 @@ public class PokemonService {
 
 	@Autowired
 	RestTemplate restTemplate;
-
-	@Autowired
-	RepositoryService repository;
 
 	private String url_base = "https://pokeapi.co/api/v2/";
 
@@ -62,7 +58,6 @@ public class PokemonService {
 			for (int i = 0; i < results.size(); i++) {
 				PokemonResume pokemonTemp = new PokemonResume(results.get(i).get("name").asText(),
 						"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/" + (i + 1) + ".png");
-//				PokemonResume pokemonTemp = new PokemonResume(results.get(i).get("name").asText(), (i + 1) +".png");
 				pokemons.add(pokemonTemp);
 			}
 		} catch (Exception e) {
@@ -74,50 +69,43 @@ public class PokemonService {
 	public PokemonModel findPokemonDetails(String pokemon) {
 		HttpEntity<String> httpEntity = configHttpEntity();
 		PokemonModel pokemonDetail = new PokemonModel();
-		PokemonModel pokemonDb = repository.findByName(pokemon);
-		if (pokemonDb != null) {
-			return pokemonDb;
-		} else {
-			try {
-				ResponseEntity<String> response = restTemplate.exchange(url_base + "pokemon/" + pokemon, HttpMethod.GET,
-						httpEntity, String.class);
-				ObjectMapper mapper = new ObjectMapper();
-				JsonNode root = mapper.readTree(response.getBody());
-				pokemonDetail.setId(root.get("id").asInt());
-				pokemonDetail.setName(StringUtils.capitalize(root.get("name").asText()));
-				pokemonDetail.setHeight(root.get("height").asInt());
-				pokemonDetail.setWeight(root.get("weight").asInt());
-				pokemonDetail.setUrlImage(root.get("sprites").get("front_default").asText());
-				List<String> abilities = new ArrayList<>();
-				List<String> type = new ArrayList<>();
-				List<Status> status = new ArrayList<>();
-				JsonNode abilitiesTemp = root.get("abilities");
-				JsonNode typeTemp = root.get("types");
-				JsonNode statusTemp = root.get("stats");
-				for (int i = 0; i < abilitiesTemp.size(); i++) {
-					abilities.add(StringUtils.capitalize(abilitiesTemp.get(i).get("ability").get("name").asText()));
-				}
-				for (int i = 0; i < typeTemp.size(); i++) {
-					type.add(StringUtils.capitalize(typeTemp.get(i).get("type").get("name").asText()));
-				}
-				for (int i = 0; i < statusTemp.size(); i++) {
-					int valueTemp = statusTemp.get(i).get("base_stat").asInt();
-					String nameTemp = StringUtils.capitalize(statusTemp.get(i).get("stat").get("name").asText());
-					Status stats = new Status(nameTemp, valueTemp);
-					status.add(stats);
-				}
-				pokemonDetail.setAbilities(abilities);
-				pokemonDetail.setType(type);
-				pokemonDetail.setStatus(status);
-//				PokemonModel pokemonDetail = new PokemonModel(id, name, type, height, weight, abilities, urlImage, status);
-				this.repository.insertPokemon(pokemonDetail);
-				return pokemonDetail;
-			} catch (Exception e) {
-				e.printStackTrace();
+		try {
+			ResponseEntity<String> response = restTemplate.exchange(url_base + "pokemon/" + pokemon, HttpMethod.GET,
+					httpEntity, String.class);
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(response.getBody());
+			pokemonDetail.setId(root.get("id").asInt());
+			pokemonDetail.setName(StringUtils.capitalize(root.get("name").asText()));
+			pokemonDetail.setHeight(root.get("height").asInt());
+			pokemonDetail.setWeight(root.get("weight").asInt());
+			pokemonDetail.setUrlImage(root.get("sprites").get("front_default").asText());
+			List<String> abilities = new ArrayList<>();
+			List<String> type = new ArrayList<>();
+			List<Status> status = new ArrayList<>();
+			JsonNode abilitiesTemp = root.get("abilities");
+			JsonNode typeTemp = root.get("types");
+			JsonNode statusTemp = root.get("stats");
+			for (int i = 0; i < abilitiesTemp.size(); i++) {
+				abilities.add(StringUtils.capitalize(abilitiesTemp.get(i).get("ability").get("name").asText()));
 			}
-//			PokemonModel pokemonEmpty = new PokemonModel();
+			for (int i = 0; i < typeTemp.size(); i++) {
+				type.add(StringUtils.capitalize(typeTemp.get(i).get("type").get("name").asText()));
+			}
+			for (int i = 0; i < statusTemp.size(); i++) {
+				int valueTemp = statusTemp.get(i).get("base_stat").asInt();
+				String nameTemp = StringUtils.capitalize(statusTemp.get(i).get("stat").get("name").asText());
+				Status stats = new Status(nameTemp, valueTemp);
+				status.add(stats);
+			}
+			pokemonDetail.setAbilities(abilities);
+			pokemonDetail.setType(type);
+			pokemonDetail.setStatus(status);
 			return pokemonDetail;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
+		return pokemonDetail;
+
 	}
 
 	public HttpEntity<String> configHttpEntity() {
